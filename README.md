@@ -1,2 +1,3 @@
-# Repositorio-de-Geremi
-Algo random, donde paso cualquier cosa random xd
+# Repositorio del Gere!
+
+Comparto cosas random xd
