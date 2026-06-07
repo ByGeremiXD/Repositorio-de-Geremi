@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate="title">Generador de Listas M3U con DRM y Cabeceras Limpias</title>
+    <!-- Google Fonts: Outfit (UI) and JetBrains Mono (M3U Code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS DESIGN SYSTEM FOR M3U DRM PRO --- */
+
+        :root {
+            --bg-base: #0a0b10;
+            --bg-surface: rgba(20, 22, 33, 0.7);
+            --bg-card: rgba(28, 30, 46, 0.45);
+            --bg-input: rgba(14, 16, 27, 0.6);
+            
+            --border-glass: rgba(255, 255, 255, 0.07);
+            --border-glass-focus: rgba(168, 85, 247, 0.4);
+            
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            /* Neon Palettes */
+            --color-primary: #8b5cf6; /* Violet */
+            --color-primary-glow: rgba(139, 92, 246, 0.3);
+            
+            --color-cyan: #06b6d4;
+            --color-cyan-glow: rgba(6, 182, 212, 0.2);
+            
+            --color-purple: #a855f7;
+            --color-purple-glow: rgba(168, 85, 247, 0.2);
+            
+            --color-orange: #f97316;
+            --color-orange-glow: rgba(249, 115, 22, 0.2);
+            
+            --color-green: #10b981;
+            --color-green-glow: rgba(16, 185, 129, 0.2);
+            
+            --color-danger: #ef4444;
+            --color-danger-glow: rgba(239, 68, 68, 0.2);
+            
+            --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --transition-fast: 0.15s ease;
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Base Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        /* Glowing Ambient Orbs */
+        .glow-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.15;
+            animation: orb-float 20s infinite alternate;
+        }
+
+        .orb-1 {
+            top: -10%;
+            right: 15%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+        }
+
+        .orb-2 {
+            bottom: 10%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--color-cyan) 0%, transparent 70%);
+            animation-delay: -5s;
+        }
+
+        @keyframes orb-float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.1); }
+        }
+
+        /* Top Bar & Language Selector */
+        .top-bar {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.5rem 1.5rem 0 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            z-index: 100;
+        }
+
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            padding: 0.25rem 0.75rem;
+            transition: border-color var(--transition-fast);
+        }
+
+        .lang-selector:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-selector select {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0 1.5rem 0 0;
+            margin: 0;
+            outline: none;
+            cursor: pointer;
+            box-shadow: none;
+            background-position: right center;
+            width: auto;
+        }
+
+        .lang-icon {
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        /* Header styling */
+        .app-header {
+            text-align: center;
+            padding: 1.5rem 1rem 2rem 1rem;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            color: var(--color-cyan);
+            filter: drop-shadow(0 0 8px var(--color-cyan-glow));
+            animation: logo-pulse 3s infinite alternate;
+        }
+
+        @keyframes logo-pulse {
+            0% { filter: drop-shadow(0 0 4px var(--color-cyan-glow)); }
+            100% { filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.5)); }
+        }
+
+        .app-header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: var(--text-primary);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Container Layout */
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 1.5rem 3rem 1.5rem;
+            display: grid;
+            grid-template-columns: 1.1fr 1.4fr;
+            gap: 1.75rem;
+            flex: 1;
+        }
+
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.75rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+            transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Card Header */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .card-icon-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .color-cyan { color: var(--color-cyan); background: var(--color-cyan-glow); }
+        .color-purple { color: var(--color-purple); background: var(--color-purple-glow); }
+        .color-orange { color: var(--color-orange); background: var(--color-orange-glow); }
+        .color-green { color: var(--color-green); background: var(--color-green-glow); }
+        .color-indigo { color: var(--color-primary); background: var(--color-primary-glow); }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .card-header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--border-glass-focus);
+            box-shadow: 0 0 0 3px var(--color-primary-glow);
+        }
+
+        /* Select Styling */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.25rem;
+            padding-right: 2.5rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .help-text {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 1.75rem 0 1.25rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .75em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .75em;
+        }
+
+        /* Input Group with Action Button */
+        .input-with-action {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-with-action input {
+            flex: 1;
+        }
+
+        /* Buttons */
+        button {
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-primary) 100%);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 15px -3px var(--color-primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #08c8eb 0%, #996bf7 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px -3px rgba(139, 92, 246, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-glass);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-glass);
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+            border-color: var(--color-cyan);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        /* Custom Checkbox */
+        .checkbox-group {
+            margin-top: 1rem;
+        }
+
+        .custom-checkbox {
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+            padding-left: 2rem;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .custom-checkbox input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 2px;
+            left: 0;
+            height: 18px;
+            width: 18px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-glass);
+            border-radius: 5px;
+            transition: background-color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .custom-checkbox:hover input ~ .checkmark {
+            border-color: var(--color-primary);
+        }
+
+        .custom-checkbox input:checked ~ .checkmark {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .custom-checkbox .checkmark:after {
+            left: 6px;
+            top: 2px;
+            width: 4px;
+            height: 9px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .custom-checkbox .label-text {
+            line-height: 1.35;
+        }
+
+        /* Channels Table and Empty State */
+        .channels-list-container {
+            overflow-x: auto;
+            max-height: 280px;
+            min-height: 120px;
+        }
+
+        .channels-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .channels-table th,
+        .channels-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-glass);
+            font-size: 0.9rem;
+        }
+
+        .channels-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .channels-table tbody tr {
+            transition: background-color var(--transition-fast);
+        }
+
+        .channels-table tbody tr:not(.empty-state):hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .channel-info-cell {
+            display: flex;
+            flex-direction: column;
+            max-width: 250px;
+        }
+
+        .channel-name-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel-url-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Badges */
+        .badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .badge-drm {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--color-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+
+        .badge-ua {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .badge-ref {
+            background: rgba(249, 115, 22, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(249, 115, 22, 0.25);
+        }
+
+        .badge-format {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--color-green);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .table-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            height: 160px;
+        }
+
+        .empty-state-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 0.75rem;
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+
+        .empty-state-content svg {
+            color: var(--text-muted);
+            opacity: 0.4;
+        }
+
+        /* Import Area */
+        .import-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .import-content textarea {
+            min-height: 80px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background-color: rgba(10, 11, 16, 0.8);
+        }
+
+        /* Output Code Block */
+        .output-actions-header {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .code-editor-container {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            background: #050608;
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 320px;
+        }
+
+        .line-numbers {
+            padding: 1rem 0.5rem 1rem 0.75rem;
+            background: #07080c;
+            border-right: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            text-align: right;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            overflow-y: hidden;
+        }
+
+        .code-viewer {
+            margin: 0;
+            padding: 1rem;
+            overflow: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            white-space: pre;
+            color: #e5e7eb;
+        }
+
+        .code-viewer code {
+            font-family: inherit;
+        }
+
+        /* Footer style */
+        .app-footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-glass);
+            margin-top: auto;
+            background: rgba(10, 11, 16, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-glass-focus);
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            z-index: 9999;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-container">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+
+    <!-- Top Bar with Language Selector -->
+    <div class="top-bar">
+        <div class="lang-selector">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" class="lang-icon"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <select id="lang-select">
+                <option value="es">Español</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+    </div>
+
+    <header class="app-header">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
+                <path d="M23 7a2 2 0 0 0-2.45-1.45L11 8.7 3.45 6.13A2 2 0 0 0 1 8v11a2 2 0 0 0 1.55 1.96l8 2.7a2 2 0 0 0 1.9 0l8-2.7A2 2 0 0 0 22 19V7Z"></path>
+                <path d="M12 9v12"></path>
+                <path d="M12 3v3"></path>
+                <path d="M19 5v1.5"></path>
+                <path d="M5 5v1.5"></path>
+            </svg>
+            <h1>M3U <span class="gradient-text">DRM PRO</span></h1>
+        </div>
+        <p class="header-subtitle" data-translate="header_subtitle">Generador premium de listas de reproducción con DRM y cabeceras sin codificar</p>
+    </header>
+
+    <main class="app-container">
+        <!-- Panel Izquierdo: Formularios -->
+        <section class="panel-left">
+            <!-- Formulario de Canal -->
+            <div class="glass-card card-form">
+                <div class="card-header">
+                    <div class="card-icon-wrapper color-cyan">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                    </div>
+                    <h2 id="form-title" data-translate="form_title_add">Agregar Canal</h2>
+                    <div class="card-header-actions">
+                        <button type="button" class="btn-secondary btn-sm" id="btn-load-example">
+                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            <span data-translate="btn_load_example">Ejemplo Básico</span>
+                        </button>
+                        <button type="button" class="btn-secondary btn-sm" id="btn-load-example-drm">
+                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            <span data-translate="btn_load_example_drm">Ejemplo DRM</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="channel-form">
+                    <input type="hidden" id="channel-index" value="-1">
+                    
+                    <div class="form-group">
+                        <label for="channel-name" data-translate="lbl_channel_name">Nombre del Canal / Video</label>
+                        <input type="text" id="channel-name" placeholder="Ej. Nombre de canales" data-translate-placeholder="plh_channel_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="channel-url" data-translate="lbl_channel_url">URL del Stream (MPD, M3U8, etc.)</label>
+                        <div class="input-with-action">
+                            <input type="url" id="channel-url" placeholder="https://cdn.ejemplo.com/live/canal.mpd" data-translate-placeholder="plh_channel_url" required>
+                            <button type="button" class="btn-icon" id="btn-clean-url" title="Limpiar y decodificar caracteres % en la URL" data-translate-title="title_clean_url">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v2M12 20v2M4.93(4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                            </button>
+                        </div>
+                        <span class="help-text" data-translate="help_url_paste">Si pegas una URL con cabeceras `|Key=Value` se autocompletarán los campos y se eliminará el formato codificado `%`.</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="stream-type" data-translate="lbl_stream_type">Tipo de Stream</label>
+                            <select id="stream-type">
+                                <option value="auto" data-translate="opt_stream_auto">Autodetectar (.mpd, .m3u8, .ts)</option>
+                                <option value="mpd">DASH (.mpd)</option>
+                                <option value="hls">HLS (.m3u8)</option>
+                                <option value="ts">MPEG-TS (.ts)</option>
+                                <option value="raw" data-translate="opt_stream_raw">Raw / Directo (Otro)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-agent" data-translate="lbl_user_agent">User-Agent</label>
+                            <input type="text" id="user-agent" placeholder="Ej. Mozilla/5.0..." data-translate-placeholder="plh_user_agent">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="referer" data-translate="lbl_referer">Referer</label>
+                            <input type="text" id="referer" placeholder="Ej. https://ejemplo.com/referer" data-translate-placeholder="plh_referer">
+                        </div>
+                        <div class="form-group">
+                            <label for="origin" data-translate="lbl_origin">Origin</label>
+                            <input type="text" id="origin" placeholder="Ej. https://ejemplo.com" data-translate-placeholder="plh_origin">
+                        </div>
+                    </div>
+
+                    <!-- Advanced Channel Attributes & Custom Stream Headers -->
+                    <div class="divider" data-translate="divider_attributes">Atributos M3U (EPG y Visuales)</div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="group-title" data-translate="lbl_group_title">Grupo (group-title)</label>
+                            <input type="text" id="group-title" placeholder="Ej. Premium, Deportes" data-translate-placeholder="plh_group_title">
+                        </div>
+                        <div class="form-group">
+                            <label for="tvg-logo" data-translate="lbl_tvg_logo">URL del Logo (tvg-logo)</label>
+                            <input type="url" id="tvg-logo" placeholder="https://ejemplo.com/logo.png" data-translate-placeholder="plh_tvg_logo">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="tvg-id" data-translate="lbl_tvg_id">ID de EPG (tvg-id)</label>
+                            <input type="text" id="tvg-id" placeholder="Ej. canal.es" data-translate-placeholder="plh_tvg_id">
+                        </div>
+                        <div class="form-group">
+                            <label for="channel-attributes" data-translate="lbl_channel_attributes">Otros Atributos</label>
+                            <input type="text" id="channel-attributes" placeholder="Ej. catchup-days=&quot;7&quot;" data-translate-placeholder="plh_channel_attributes">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stream-headers" data-translate="lbl_stream_headers">Cabeceras del Stream (Kodi)</label>
+                        <input type="text" id="stream-headers" placeholder="Ej. X-TCDN-token={Token}" data-translate-placeholder="plh_stream_headers">
+                    </div>
+
+                    <div class="divider" data-translate="divider_drm">DRM (Protección de Contenido)</div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="drm-type" data-translate="lbl_drm_type">Tipo de DRM</label>
+                            <select id="drm-type">
+                                <option value="none" data-translate="opt_drm_none">Ninguno</option>
+                                <option value="org.w3.clearkey">ClearKey (org.w3.clearkey)</option>
+                                <option value="com.widevine.alpha">Widevine (com.widevine.alpha)</option>
+                                <option value="com.microsoft.playready">PlayReady (com.microsoft.playready)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="drm-key-type" data-translate="lbl_drm_key_type">Llave / Licencia</label>
+                            <select id="drm-key-type">
+                                <option value="key" data-translate="opt_key_direct">Clave Directa (keyid:key o JSON)</option>
+                                <option value="url" data-translate="opt_key_url">Licencia URL (Licenser Server)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="drm-value-group">
+                        <label for="drm-value" id="drm-value-label" data-translate="lbl_drm_value">Valor de Licencia / Clave</label>
+                        <input type="text" id="drm-value" placeholder="Ej. keyid:key o JSON" data-translate-placeholder="plh_drm_value">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="btn-submit-channel">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span data-translate="btn_add_channel">Agregar Canal</span>
+                        </button>
+                        <button type="button" class="btn-secondary" id="btn-cancel-edit" style="display: none;">
+                            <span data-translate="btn_cancel_edit">Cancelar Edición</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Panel de Configuración -->
+            <div class="glass-card card-settings">
+                <div class="card-header">
+                    <div class="card-icon-wrapper color-purple">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </div>
+                    <h2 data-translate="settings_title">Opciones de Generación</h2>
+                </div>
+                <div class="settings-content">
+                    <div class="form-group">
+                        <label for="format-mode" data-translate="lbl_format_mode">Formato de Cabeceras en M3U</label>
+                        <select id="format-mode">
+                            <option value="standard" data-translate="opt_format_standard">Estándar (Líneas independientes #EXTVLCOPT e #KODIPROP)</option>
+                            <option value="suffix" data-translate="opt_format_suffix">Sufijo URL sin codificar (url|User-Agent=...&Referer=...)</option>
+                            <option value="both" data-translate="opt_format_both">Híbrido (Ambos formatos para máxima compatibilidad)</option>
+                        </select>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="decode-percent" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text" data-translate="chk_decode_percent">Decodificar automáticamente caracteres % (como %20, %3A, %2F) en cabeceras y URLs.</span>
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="include-kodi-props" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text" data-translate="chk_kodi_props">Incluir propiedades de Kodi (#KODIPROP) si hay DRM.</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel Derecho: Lista de Canales y Código M3U -->
+        <section class="panel-right">
+            <!-- Lista de Canales Agregados -->
+            <div class="glass-card card-channels">
+                <div class="card-header">
+                    <div class="card-icon-wrapper color-orange">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <h2><span data-translate="channels_title">Canales en la Lista</span> (<span id="channel-count">0</span>)</h2>
+                    <button type="button" class="btn-danger btn-sm" id="btn-clear-all" style="display: none;">
+                        <span data-translate="btn_clear_all">Limpiar Todo</span>
+                    </button>
+                </div>
+                
+                <div class="channels-list-container">
+                    <table class="channels-table" id="channels-table">
+                        <thead>
+                            <tr>
+                                <th data-translate="th_channel">Canal</th>
+                                <th data-translate="th_headers">Cabeceras / DRM</th>
+                                <th class="text-right" data-translate="th_actions">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="channels-tbody">
+                            <!-- Inserción dinámica por JS -->
+                            <tr class="empty-state">
+                                <td colspan="3">
+                                    <div class="empty-state-content">
+                                        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                        <p data-translate="empty_state_text">No has agregado canales aún.</p>
+                                        <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                                            <button type="button" class="btn-secondary btn-sm" id="btn-load-example-empty">
+                                                <span data-translate="btn_load_example">Ejemplo Básico</span>
+                                            </button>
+                                            <button type="button" class="btn-secondary btn-sm" id="btn-load-example-drm-empty">
+                                                <span data-translate="btn_load_example_drm">Ejemplo DRM</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Importador rápido de M3U -->
+            <div class="glass-card card-import">
+                <div class="card-header">
+                    <div class="card-icon-wrapper color-indigo">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+                    <h2 data-translate="import_title">Importar / Cargar Lista M3U Existente</h2>
+                </div>
+                <div class="import-content">
+                    <textarea id="import-m3u-text" placeholder="Pega aquí tu código de lista M3U actual para cargarlo y limpiarlo automáticamente..." data-translate-placeholder="plh_import_m3u_text"></textarea>
+                    <button type="button" class="btn-primary" id="btn-import">
+                        <span data-translate="btn_import">Procesar e Importar M3U</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Salida del Código M3U -->
+            <div class="glass-card card-output">
+                <div class="card-header">
+                    <div class="card-icon-wrapper color-green">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    </div>
+                    <h2 data-translate="output_title">Código M3U Generado</h2>
+                    <div class="output-actions-header">
+                        <button type="button" class="btn-secondary btn-sm" id="btn-copy">
+                            <span class="btn-icon-text-wrapper">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" class="icon-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <span class="copy-text" data-translate="btn_copy">Copiar</span>
+                            </span>
+                        </button>
+                        <button type="button" class="btn-primary btn-sm" id="btn-download">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span data-translate="btn_download">Descargar</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="code-editor-container">
+                    <div class="line-numbers" id="line-numbers">
+                        <span>1</span>
+                    </div>
+                    <pre class="code-viewer"><code id="m3u-output-code">#EXTM3U
+# Carga canales para generar tu lista...</code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p data-translate="footer_text">M3U DRM PRO &copy; 2026. Diseñado para ofrecer cabeceras IPTV 100% limpias sin codificar (evita los molestos %).</p>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">Copiado al portapapeles</div>
+
+    <script>
+        // --- TRANSLATIONS DICTIONARY ---
+        const translations = {
+            es: {
+                title: "Generador de Listas M3U con DRM y Cabeceras Limpias",
+                header_subtitle: "Generador premium de listas de reproducción con DRM y cabeceras sin codificar",
+                form_title_add: "Agregar Canal",
+                form_title_edit: "Editar Canal",
+                btn_load_example: "Ejemplo Básico",
+                btn_load_example_drm: "Ejemplo DRM",
+                lbl_channel_name: "Nombre del Canal / Video",
+                plh_channel_name: "Ej. Nombre de canales",
+                lbl_channel_url: "URL del Stream (MPD, M3U8, etc.)",
+                plh_channel_url: "https://cdn.ejemplo.com/live/canal.mpd",
+                title_clean_url: "Limpiar y decodificar caracteres % en la URL",
+                help_url_paste: "Si pegas una URL con cabeceras `|Key=Value` se autocompletarán los campos y se eliminará el formato codificado `%`.",
+                lbl_stream_type: "Tipo de Stream",
+                opt_stream_auto: "Autodetectar (.mpd, .m3u8, .ts)",
+                opt_stream_raw: "Raw / Directo (Otro)",
+                lbl_user_agent: "User-Agent",
+                plh_user_agent: "Ej. Mozilla/5.0...",
+                lbl_referer: "Referer",
+                plh_referer: "Ej. https://ejemplo.com/referer",
+                lbl_origin: "Origin",
+                plh_origin: "Ej. https://ejemplo.com",
+                divider_attributes: "Atributos M3U (EPG y Visuales)",
+                lbl_group_title: "Grupo (group-title)",
+                plh_group_title: "Ej. Premium, Deportes",
+                lbl_tvg_logo: "URL del Logo (tvg-logo)",
+                plh_tvg_logo: "https://ejemplo.com/logo.png",
+                lbl_tvg_id: "ID de EPG (tvg-id)",
+                plh_tvg_id: "Ej. canal.es",
+                lbl_channel_attributes: "Otros Atributos",
+                plh_channel_attributes: 'Ej. catchup-days="7"',
+                lbl_stream_headers: "Cabeceras del Stream (Kodi)",
+                plh_stream_headers: "Ej. X-TCDN-token={Token}",
+                divider_drm: "DRM (Protección de Contenido)",
+                lbl_drm_type: "Tipo de DRM",
+                opt_drm_none: "Ninguno",
+                lbl_drm_key_type: "Llave / Licencia",
+                opt_key_direct: "Clave Directa (keyid:key o JSON)",
+                opt_key_url: "Licencia URL (Licenser Server)",
+                lbl_drm_value: "Valor de Licencia / Clave",
+                lbl_drm_value_clearkey: "Clave ClearKey (Formato keyid:key o JSON)",
+                lbl_drm_value_widevine: "Clave Directa (keyid:key)",
+                lbl_drm_value_license_url: "URL de Licencia (License Server)",
+                plh_drm_value: "Ej. keyid:key o JSON",
+                btn_add_channel: "Agregar Canal",
+                btn_save_changes: "Guardar Cambios",
+                btn_cancel_edit: "Cancelar Edición",
+                settings_title: "Opciones de Generación",
+                lbl_format_mode: "Formato de Cabeceras en M3U",
+                opt_format_standard: "Estándar (Líneas independientes #EXTVLCOPT e #KODIPROP)",
+                opt_format_suffix: "Sufijo URL sin codificar (url|User-Agent=...&Referer=...)",
+                opt_format_both: "Híbrido (Ambos formatos para máxima compatibilidad)",
+                chk_decode_percent: "Decodificar automáticamente caracteres % (como %20, %3A, %2F) en cabeceras y URLs.",
+                chk_kodi_props: "Incluir propiedades de Kodi (#KODIPROP) si hay DRM.",
+                channels_title: "Canales en la Lista",
+                btn_clear_all: "Limpiar Todo",
+                th_channel: "Canal",
+                th_headers: "Cabeceras / DRM",
+                th_actions: "Acciones",
+                empty_state_text: "No has agregado canales aún.",
+                btn_edit: "Editar",
+                btn_delete: "Borrar",
+                import_title: "Importar / Cargar Lista M3U Existente",
+                plh_import_m3u_text: "Pega aquí tu código de lista M3U actual para cargarlo y limpiarlo automáticamente...",
+                btn_import: "Procesar e Importar M3U",
+                output_title: "Código M3U Generado",
+                btn_copy: "Copiar",
+                btn_copied: "¡Copiado!",
+                btn_download: "Descargar",
+                footer_text: "M3U DRM PRO &copy; 2026. Diseñado para ofrecer cabeceras IPTV 100% limpias sin codificar (evita los molestos %).",
+                m3u_placeholder: "#EXTM3U\n# Carga canales para generar tu lista...",
+                toast_copied: "Lista M3U copiado al portapapeles",
+                toast_downloaded: "Archivo lista_drm_limpia.m3u descargado",
+                toast_cleaned: "¡URL, formato e cabeceras procesados!",
+                toast_example_loaded: "Canal de prueba cargado.",
+                toast_added: "Canal agregado correctamente",
+                toast_updated: "Canal actualizado correctamente",
+                toast_deleted: "Canal eliminado",
+                toast_cleared: "Lista vaciada",
+                toast_error_copy: "Error al copiar al portapapeles",
+                toast_no_content: "No hay contenido para realizar esta acción.",
+                toast_no_import: "No se encontraron canales válidos para importar.",
+                toast_invalid_m3u: "Por favor, ingresa contenido M3U válido.",
+                confirm_clear_all: "¿Estás seguro de que deseas eliminar todos los canales de la lista?",
+                empty_channel_name: "Canal sin nombre",
+                example_channel_name: "Nombre del canal",
+                lbl_drm_value_playready: "Licencia / Clave PlayReady",
+                toast_import_success: "Canales importados con éxito"
+            },
+            en: {
+                title: "M3U Playlist Generator with DRM and Clean Headers",
+                header_subtitle: "Premium playlist generator with DRM and unencoded headers",
+                form_title_add: "Add Channel",
+                form_title_edit: "Edit Channel",
+                btn_load_example: "Basic Example",
+                btn_load_example_drm: "DRM Example",
+                lbl_channel_name: "Channel / Video Name",
+                plh_channel_name: "e.g. Channel Name",
+                lbl_channel_url: "Stream URL (MPD, M3U8, etc.)",
+                plh_channel_url: "https://cdn.example.com/live/channel.mpd",
+                title_clean_url: "Clean and decode % characters in URL",
+                help_url_paste: "If you paste a URL with headers `|Key=Value` the fields will autocomplete and percent-encoding (%) will be cleaned.",
+                lbl_stream_type: "Stream Type",
+                opt_stream_auto: "Auto-detect (.mpd, .m3u8, .ts)",
+                opt_stream_raw: "Raw / Direct (Other)",
+                lbl_user_agent: "User-Agent",
+                plh_user_agent: "e.g. Mozilla/5.0...",
+                lbl_referer: "Referer",
+                plh_referer: "e.g. https://example.com/referer",
+                lbl_origin: "Origin",
+                plh_origin: "e.g. https://example.com",
+                divider_attributes: "M3U Attributes (EPG and Visuals)",
+                lbl_group_title: "Group (group-title)",
+                plh_group_title: "e.g. Premium, Sports",
+                lbl_tvg_logo: "Logo URL (tvg-logo)",
+                plh_tvg_logo: "https://example.com/logo.png",
+                lbl_tvg_id: "EPG ID (tvg-id)",
+                plh_tvg_id: "e.g. channel.us",
+                lbl_channel_attributes: "Other Attributes",
+                plh_channel_attributes: 'e.g. catchup-days="7"',
+                lbl_stream_headers: "Stream Headers (Kodi)",
+                plh_stream_headers: "e.g. X-TCDN-token={Token}",
+                divider_drm: "DRM (Content Protection)",
+                lbl_drm_type: "DRM Type",
+                opt_drm_none: "None",
+                lbl_drm_key_type: "Key / License",
+                opt_key_direct: "Direct Key (keyid:key or JSON)",
+                opt_key_url: "License URL (License Server)",
+                lbl_drm_value: "License / Key Value",
+                lbl_drm_value_clearkey: "ClearKey Key (Format keyid:key or JSON)",
+                lbl_drm_value_widevine: "Direct Key (keyid:key)",
+                lbl_drm_value_license_url: "License URL (License Server)",
+                plh_drm_value: "e.g. keyid:key or JSON",
+                btn_add_channel: "Add Channel",
+                btn_save_changes: "Save Changes",
+                btn_cancel_edit: "Cancel Edit",
+                settings_title: "Generation Options",
+                lbl_format_mode: "M3U Header Format",
+                opt_format_standard: "Standard (Independent #EXTVLCOPT and #KODIPROP lines)",
+                opt_format_suffix: "Unencoded URL Suffix (url|User-Agent=...&Referer=...)",
+                opt_format_both: "Hybrid (Both formats for maximum compatibility)",
+                chk_decode_percent: "Automatically decode % characters (like %20, %3A, %2F) in headers and URLs.",
+                chk_kodi_props: "Include Kodi properties (#KODIPROP) if DRM is present.",
+                channels_title: "Channels in List",
+                btn_clear_all: "Clear All",
+                th_channel: "Channel",
+                th_headers: "Headers / DRM",
+                th_actions: "Actions",
+                empty_state_text: "You haven't added any channels yet.",
+                btn_edit: "Edit",
+                btn_delete: "Delete",
+                import_title: "Import / Load Existing M3U List",
+                plh_import_m3u_text: "Paste your current M3U playlist code here to load and clean it automatically...",
+                btn_import: "Process and Import M3U",
+                output_title: "Generated M3U Code",
+                btn_copy: "Copy",
+                btn_copied: "Copied!",
+                btn_download: "Download",
+                footer_text: "M3U DRM PRO &copy; 2026. Designed to deliver 100% clean, unencoded IPTV headers (avoids annoying % signs).",
+                m3u_placeholder: "#EXTM3U\n# Load channels to generate your list...",
+                toast_copied: "M3U list copied to clipboard",
+                toast_downloaded: "File lista_drm_limpia.m3u downloaded",
+                toast_cleaned: "URL, format and headers processed!",
+                toast_example_loaded: "Test example channel loaded.",
+                toast_added: "Channel added successfully",
+                toast_updated: "Channel updated successfully",
+                toast_deleted: "Channel deleted",
+                toast_cleared: "List cleared",
+                toast_error_copy: "Error copying to clipboard",
+                toast_no_content: "No content available for this action.",
+                toast_no_import: "No valid channels found to import.",
+                toast_invalid_m3u: "Please enter valid M3U content.",
+                confirm_clear_all: "Are you sure you want to delete all channels from the list?",
+                empty_channel_name: "Unnamed Channel",
+                example_channel_name: "Channel Name",
+                lbl_drm_value_playready: "PlayReady License / Key",
+                toast_import_success: "Channels imported successfully"
+            }
+        };
+
+        // --- CONFIGURATION & STATE ---
+        let channels = [];
+        let editingIndex = -1;
+
+        // --- DOM ELEMENTS ---
+        const channelForm = document.getElementById('channel-form');
+        const channelIndexInput = document.getElementById('channel-index');
+        const channelNameInput = document.getElementById('channel-name');
+        const channelUrlInput = document.getElementById('channel-url');
+        const streamTypeSelect = document.getElementById('stream-type');
+        const userAgentInput = document.getElementById('user-agent');
+        const refererInput = document.getElementById('referer');
+        const originInput = document.getElementById('origin');
+        const groupTitleInput = document.getElementById('group-title');
+        const tvgLogoInput = document.getElementById('tvg-logo');
+        const tvgIdInput = document.getElementById('tvg-id');
+        const channelAttributesInput = document.getElementById('channel-attributes');
+        const streamHeadersInput = document.getElementById('stream-headers');
+        const drmTypeSelect = document.getElementById('drm-type');
+        const drmKeyTypeSelect = document.getElementById('drm-key-type');
+        const drmValueInput = document.getElementById('drm-value');
+        const drmValueLabel = document.getElementById('drm-value-label');
+        const drmValueGroup = document.getElementById('drm-value-group');
+
+        const btnSubmitChannel = document.getElementById('btn-submit-channel');
+        const btnCancelEdit = document.getElementById('btn-cancel-edit');
+        const btnLoadExample = document.getElementById('btn-load-example');
+        const btnLoadExampleDrm = document.getElementById('btn-load-example-drm');
+        const btnCleanUrl = document.getElementById('btn-clean-url');
+        const btnClearAll = document.getElementById('btn-clear-all');
+
+        const formatModeSelect = document.getElementById('format-mode');
+        const decodePercentCheckbox = document.getElementById('decode-percent');
+        const includeKodiPropsCheckbox = document.getElementById('include-kodi-props');
+
+        const channelsTbody = document.getElementById('channels-tbody');
+        const channelCountSpan = document.getElementById('channel-count');
+
+        const importM3uText = document.getElementById('import-m3u-text');
+        const btnImport = document.getElementById('btn-import');
+
+        const m3uOutputCode = document.getElementById('m3u-output-code');
+        const lineNumbersContainer = document.getElementById('line-numbers');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnDownload = document.getElementById('btn-download');
+        const toast = document.getElementById('toast');
+        const langSelect = document.getElementById('lang-select');
+
+        // --- TRANSLATION LOGIC ---
+
+        function translateUI(lang) {
+            const currentTranslations = translations[lang] || translations['es'];
+            
+            // Translate all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (currentTranslations[key]) {
+                    const span = el.querySelector('span');
+                    if (span) {
+                        span.textContent = currentTranslations[key];
+                    } else {
+                        let textNode = Array.from(el.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+                        if (textNode) {
+                            textNode.nodeValue = currentTranslations[key];
+                        } else {
+                            el.textContent = currentTranslations[key];
+                        }
+                    }
+                }
+            });
+
+            // Translate placeholders
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-translate-placeholder');
+                if (currentTranslations[key]) {
+                    el.setAttribute('placeholder', currentTranslations[key]);
+                }
+            });
+
+            // Update title attribute
+            document.querySelectorAll('[data-translate-title]').forEach(el => {
+                const key = el.getAttribute('data-translate-title');
+                if (currentTranslations[key]) {
+                    el.setAttribute('title', currentTranslations[key]);
+                }
+            });
+
+            // Document Title
+            document.title = currentTranslations['title'];
+
+            // Update DRM Field labels
+            updateDrmFields();
+            
+            // Re-render
+            renderChannelsTable();
+        }
+
+        // Handle language dropdown change
+        langSelect.addEventListener('change', (e) => {
+            const lang = e.target.value;
+            localStorage.setItem('m3u_generator_lang', lang);
+            translateUI(lang);
+        });
+
+        // Detect and load initial language
+        function initLanguage() {
+            const savedLang = localStorage.getItem('m3u_generator_lang');
+            if (savedLang && (savedLang === 'es' || savedLang === 'en')) {
+                langSelect.value = savedLang;
+            } else {
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang && browserLang.startsWith('en')) {
+                    langSelect.value = 'en';
+                } else {
+                    langSelect.value = 'es';
+                }
+            }
+            translateUI(langSelect.value);
+        }
+
+        // Get localized string helper
+        function getLocStr(key) {
+            const lang = langSelect.value || 'es';
+            return translations[lang][key] || translations['es'][key] || key;
+        }
+
+        // --- HELPER FUNCTIONS ---
+
+        // Decodes URL-encoded strings safely
+        function safeDecode(str) {
+            if (!str) return '';
+            if (!decodePercentCheckbox.checked) return str;
+            
+            try {
+                let decoded = str;
+                for (let i = 0; i < 3; i++) {
+                    if (decoded.includes('%')) {
+                        decoded = decodeURIComponent(decoded);
+                    } else {
+                        break;
+                    }
+                }
+                return decoded;
+            } catch (e) {
+                return str
+                    .replace(/%20/g, ' ')
+                    .replace(/%3A/g, ':')
+                    .replace(/%2F/g, '/')
+                    .replace(/%3F/g, '?')
+                    .replace(/%3D/g, '=')
+                    .replace(/%26/g, '&')
+                    .replace(/%7C/g, '|')
+                    .replace(/%2B/g, '+');
+            }
+        }
+
+        // Shows custom toast alert
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // Toggles visibility of DRM fields based on selection
+        function updateDrmFields() {
+            const drmType = drmTypeSelect.value;
+            if (drmType === 'none') {
+                drmValueGroup.style.display = 'none';
+                drmValueInput.removeAttribute('required');
+            } else {
+                drmValueGroup.style.display = 'block';
+                drmValueInput.setAttribute('required', 'required');
+                
+                const keyType = drmKeyTypeSelect.value;
+                if (drmType === 'org.w3.clearkey') {
+                    drmValueLabel.textContent = getLocStr('lbl_drm_value_clearkey');
+                    drmValueInput.placeholder = '{"14fc0e3b249a43faa52fc69279e77cab":"71c987df089eda046faf592931e84a5c"}';
+                } else if (drmType === 'com.widevine.alpha') {
+                    if (keyType === 'key') {
+                        drmValueLabel.textContent = getLocStr('lbl_drm_value_widevine');
+                        drmValueInput.placeholder = 'c6f0b2b0142007b8624de0c2d53962c8:46b8fb713fdd09a1c55b85b6f8ad9c9c';
+                    } else {
+                        drmValueLabel.textContent = getLocStr('lbl_drm_value_license_url') + ' (Widevine)';
+                        drmValueInput.placeholder = 'https://license.example.com/widevine';
+                    }
+                } else if (drmType === 'com.microsoft.playready') {
+                    if (keyType === 'key') {
+                        drmValueLabel.textContent = getLocStr('lbl_drm_value_playready');
+                        drmValueInput.placeholder = 'Ej. Clave o Token de Licencia';
+                    } else {
+                        drmValueLabel.textContent = getLocStr('lbl_drm_value_license_url') + ' (PlayReady)';
+                        drmValueInput.placeholder = 'https://license.example.com/playready';
+                    }
+                }
+            }
+        }
+
+        // Parses suffix parameters from stream URL (e.g. url|User-Agent=...&Referer=...)
+        function parseUrlSuffix(urlText) {
+            if (!urlText) return { url: '', headers: {} };
+            
+            const parts = urlText.split('|');
+            if (parts.length < 2) {
+                return { url: urlText, headers: {} };
+            }
+            
+            const baseUrl = parts[0].trim();
+            const suffix = parts[1].trim();
+            const headers = {};
+            
+            const pairs = suffix.split(/[&;]/);
+            pairs.forEach(pair => {
+                const eqIdx = pair.indexOf('=');
+                if (eqIdx > -1) {
+                    const key = pair.substring(0, eqIdx).trim();
+                    const value = pair.substring(eqIdx + 1).trim();
+                    
+                    const cleanKey = key.toLowerCase();
+                    const decodedValue = safeDecode(value);
+                    
+                    if (cleanKey === 'user-agent' || cleanKey === 'http-user-agent') {
+                        headers.userAgent = decodedValue;
+                    } else if (cleanKey === 'referer' || cleanKey === 'referrer' || cleanKey === 'http-referrer') {
+                        headers.referer = decodedValue;
+                    } else if (cleanKey === 'origin' || cleanKey === 'http-origin') {
+                        headers.origin = decodedValue;
+                    }
+                }
+            });
+            
+            return { url: baseUrl, headers };
+        }
+
+        // Clean and decode pasted URL
+        function cleanUrlInput() {
+            let rawUrl = channelUrlInput.value.trim();
+            if (!rawUrl) return;
+            
+            const parsed = parseUrlSuffix(rawUrl);
+            
+            if (parsed.headers.userAgent) userAgentInput.value = parsed.headers.userAgent;
+            if (parsed.headers.referer) refererInput.value = parsed.headers.referer;
+            if (parsed.headers.origin) originInput.value = parsed.headers.origin;
+            
+            const lowerUrl = parsed.url.toLowerCase();
+            if (lowerUrl.includes('.mpd')) {
+                streamTypeSelect.value = 'mpd';
+            } else if (lowerUrl.includes('.m3u8')) {
+                streamTypeSelect.value = 'hls';
+            } else if (lowerUrl.includes('.ts')) {
+                streamTypeSelect.value = 'ts';
+            }
+            
+            channelUrlInput.value = safeDecode(parsed.url);
+            showToast(getLocStr('toast_cleaned'));
+        }
+
+        // Load Basic Example
+        function loadExample() {
+            channelNameInput.value = getLocStr('example_channel_name');
+            channelUrlInput.value = 'https://cdn.example.com/live/stream.m3u8';
+            groupTitleInput.value = 'Ejemplos';
+            tvgLogoInput.value = '';
+            tvgIdInput.value = 'canal1';
+            channelAttributesInput.value = '';
+            streamHeadersInput.value = '';
+            userAgentInput.value = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+            refererInput.value = 'https://webclient.example.com/';
+            originInput.value = 'https://webclient.example.com';
+            drmTypeSelect.value = 'none';
+            drmKeyTypeSelect.value = 'key';
+            drmValueInput.value = '';
+            
+            updateDrmFields();
+            showToast(getLocStr('toast_example_loaded'));
+        }
+
+        // Load Advanced Example with ClearKey multi-keys JSON & stream_headers from user base example
+        function loadExampleDrm() {
+            channelNameInput.value = getLocStr('example_channel_name') + ' (DRM)';
+            channelUrlInput.value = 'https://cdn.example.com/live/stream.mpd?begin={start_iso}&end={end_iso}';
+            groupTitleInput.value = 'Premium';
+            tvgLogoInput.value = 'https://example.com/logo.png';
+            tvgIdInput.value = 'CanalPremium';
+            channelAttributesInput.value = 'tvg-name="CanalPremium" group-logo="https://example.com/group-logo.png" catchup-type="default" catchup-source="https://cdn.example.com/live/stream.mpd?begin={start_iso}&end={end_iso}" catchup-days="7"';
+            streamHeadersInput.value = 'X-TCDN-token={Token}';
+            userAgentInput.value = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36';
+            refererInput.value = 'https://webclient.example.com/';
+            originInput.value = 'https://webclient.example.com';
+            drmTypeSelect.value = 'org.w3.clearkey';
+            drmKeyTypeSelect.value = 'key';
+            drmValueInput.value = '{"14fc0e3b249a43faa52fc69279e77cab":"71c987df089eda046faf592931e84a5c","47cc7264dc314b589e687be2e4d3be59":"f61d992a078161b377909c8bf35c5910"}';
+            
+            updateDrmFields();
+            showToast(getLocStr('toast_example_loaded'));
+        }
+
+        // --- STATE ACTIONS ---
+
+        // Re-renders the channels table
+        function renderChannelsTable() {
+            if (channels.length === 0) {
+                channelsTbody.innerHTML = `
+                    <tr class="empty-state">
+                        <td colspan="3">
+                            <div class="empty-state-content">
+                                <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                <p data-translate="empty_state_text">${getLocStr('empty_state_text')}</p>
+                                <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                                    <button type="button" class="btn-secondary btn-sm" id="btn-load-example-empty">
+                                        <span data-translate="btn_load_example">${getLocStr('btn_load_example')}</span>
+                                    </button>
+                                    <button type="button" class="btn-secondary btn-sm" id="btn-load-example-drm-empty">
+                                        <span data-translate="btn_load_example_drm">${getLocStr('btn_load_example_drm')}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('btn-load-example-empty').addEventListener('click', loadExample);
+                document.getElementById('btn-load-example-drm-empty').addEventListener('click', loadExampleDrm);
+                btnClearAll.style.display = 'none';
+            } else {
+                btnClearAll.style.display = 'inline-flex';
+                channelsTbody.innerHTML = '';
+                
+                channels.forEach((ch, idx) => {
+                    const tr = document.createElement('tr');
+                    
+                    let badgesHtml = '';
+                    
+                    let actualType = ch.streamType || 'auto';
+                    let formatLabel = actualType.toUpperCase();
+                    if (actualType === 'auto') {
+                        const lowerUrl = ch.url.toLowerCase();
+                        if (lowerUrl.includes('.mpd')) formatLabel = 'AUTO (DASH)';
+                        else if (lowerUrl.includes('.m3u8')) formatLabel = 'AUTO (HLS)';
+                        else if (lowerUrl.includes('.ts')) formatLabel = 'AUTO (TS)';
+                        else formatLabel = 'AUTO';
+                    }
+                    badgesHtml += `<span class="badge badge-format">${formatLabel}</span>`;
+                    
+                    if (ch.drmType !== 'none') {
+                        const label = ch.drmType.split('.').pop();
+                        badgesHtml += `<span class="badge badge-drm">DRM: ${label}</span>`;
+                    }
+                    if (ch.userAgent) {
+                        badgesHtml += `<span class="badge badge-ua">UA</span>`;
+                    }
+                    if (ch.referer || ch.origin) {
+                        badgesHtml += `<span class="badge badge-ref">REF</span>`;
+                    }
+                    if (ch.streamHeaders) {
+                        badgesHtml += `<span class="badge badge-ref">S-HDR</span>`;
+                    }
+                    if (ch.attributes) {
+                        badgesHtml += `<span class="badge badge-ua">ATTR</span>`;
+                    }
+                    
+                    tr.innerHTML = `
+                        <td>
+                            <div class="channel-info-cell">
+                                <span class="channel-name-title">${ch.name}</span>
+                                <span class="channel-url-subtitle" title="${ch.url}">${ch.url}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="badge-container">
+                                ${badgesHtml}
+                            </div>
+                        </td>
+                        <td class="text-right">
+                            <div class="table-actions">
+                                <button class="btn-secondary btn-sm btn-edit" data-index="${idx}">${getLocStr('btn_edit')}</button>
+                                <button class="btn-danger btn-sm btn-delete" data-index="${idx}">${getLocStr('btn_delete')}</button>
+                            </div>
+                        </td>
+                    `;
+                    channelsTbody.appendChild(tr);
+                });
+            }
+            
+            channelCountSpan.textContent = channels.length;
+            generateM3uOutput();
+        }
+
+        // Generate the M3U playlist file content
+        function generateM3uOutput() {
+            if (channels.length === 0) {
+                m3uOutputCode.textContent = getLocStr('m3u_placeholder');
+                updateLineNumbers(2);
+                return;
+            }
+            
+            let m3u = "#EXTM3U\n";
+            const mode = formatModeSelect.value;
+            const includeKodi = includeKodiPropsCheckbox.checked;
+            
+            channels.forEach(ch => {
+                let extinf = `#EXTINF:-1`;
+                if (ch.tvgId) extinf += ` tvg-id="${ch.tvgId}"`;
+                if (ch.tvgLogo) extinf += ` tvg-logo="${ch.tvgLogo}"`;
+                if (ch.groupTitle) extinf += ` group-title="${ch.groupTitle}"`;
+                if (ch.attributes) {
+                    extinf += ` ${ch.attributes}`;
+                }
+                extinf += `,${ch.name}\n`;
+                m3u += extinf;
+                
+                const hasHeaders = ch.userAgent || ch.referer || ch.origin;
+                
+                // 1. Write separate tags if standard or both
+                if (mode === 'standard' || mode === 'both') {
+                    if (ch.userAgent) {
+                        m3u += `#EXTVLCOPT:http-user-agent=${ch.userAgent}\n`;
+                    }
+                    if (ch.referer) {
+                        m3u += `#EXTVLCOPT:http-referrer=${ch.referer}\n`;
+                    }
+                    if (ch.origin) {
+                        m3u += `#EXTVLCOPT:http-origin=${ch.origin}\n`;
+                    }
+                }
+                
+                // 2. Write Kodi properties if Kodi is checked
+                if (includeKodi) {
+                    let actualType = ch.streamType || 'auto';
+                    if (actualType === 'auto') {
+                        const lowerUrl = ch.url.toLowerCase();
+                        if (lowerUrl.includes('.mpd')) {
+                            actualType = 'mpd';
+                        } else if (lowerUrl.includes('.m3u8')) {
+                            actualType = 'hls';
+                        } else if (lowerUrl.includes('.ts')) {
+                            actualType = 'ts';
+                        } else {
+                            actualType = 'raw';
+                        }
+                    }
+                    
+                    if (ch.drmType !== 'none' || actualType === 'mpd' || actualType === 'hls' || ch.streamHeaders) {
+                        m3u += `#KODIPROP:inputstream=inputstream.adaptive\n`;
+                        if (actualType === 'mpd') {
+                            m3u += `#KODIPROP:inputstream.adaptive.manifest_type=mpd\n`;
+                        } else if (actualType === 'hls') {
+                            m3u += `#KODIPROP:inputstream.adaptive.manifest_type=hls\n`;
+                        }
+                        if (ch.drmType !== 'none') {
+                            m3u += `#KODIPROP:inputstream.adaptive.license_type=${ch.drmType}\n`;
+                            if (ch.drmValue) {
+                                m3u += `#KODIPROP:inputstream.adaptive.license_key=${ch.drmValue}\n`;
+                            }
+                        }
+                        if (ch.streamHeaders) {
+                            m3u += `#KODIPROP:inputstream.adaptive.stream_headers=${ch.streamHeaders}\n`;
+                        }
+                    } else if (actualType === 'ts') {
+                        m3u += `#KODIPROP:inputstream=inputstream.ffmpegdirect\n`;
+                        m3u += `#KODIPROP:inputstream.ffmpegdirect.mime_type=video/mp2t\n`;
+                    }
+                }
+                
+                // 3. Output stream URL (with suffix appended if suffix or both)
+                let streamUrl = ch.url;
+                if ((mode === 'suffix' || mode === 'both') && hasHeaders) {
+                    const params = [];
+                    if (ch.userAgent) {
+                        params.push(`User-Agent=${ch.userAgent}`);
+                    }
+                    if (ch.referer) {
+                        params.push(`Referer=${ch.referer}`);
+                    }
+                    if (ch.origin) {
+                        params.push(`Origin=${ch.origin}`);
+                    }
+                    
+                    if (params.length > 0) {
+                        streamUrl += '|' + params.join('&');
+                    }
+                }
+                
+                m3u += `${streamUrl}\n`;
+            });
+            
+            m3uOutputCode.textContent = m3u;
+            
+            // Update line numbers count
+            const linesCount = m3u.split('\n').length;
+            updateLineNumbers(linesCount);
+        }
+
+        // Update the line numbers count next to the editor viewer
+        function updateLineNumbers(count) {
+            let numbersHtml = '';
+            for (let i = 1; i <= count; i++) {
+                numbersHtml += `<span>${i}</span>`;
+            }
+            lineNumbersContainer.innerHTML = numbersHtml;
+        }
+
+        // Clear input form
+        function resetForm() {
+            channelIndexInput.value = '-1';
+            channelNameInput.value = '';
+            channelUrlInput.value = '';
+            streamTypeSelect.value = 'auto';
+            userAgentInput.value = '';
+            refererInput.value = '';
+            originInput.value = '';
+            groupTitleInput.value = '';
+            tvgLogoInput.value = '';
+            tvgIdInput.value = '';
+            channelAttributesInput.value = '';
+            streamHeadersInput.value = '';
+            drmTypeSelect.value = 'none';
+            drmKeyTypeSelect.value = 'key';
+            drmValueInput.value = '';
+            
+            editingIndex = -1;
+            btnSubmitChannel.querySelector('span').textContent = getLocStr('btn_add_channel');
+            btnCancelEdit.style.display = 'none';
+            updateDrmFields();
+            
+            document.getElementById('form-title').textContent = getLocStr('form_title_add');
+        }
+
+        // --- IMPORT PARSER ---
+
+        // Imports an existing M3U list and populates the channels array (Splits at last comma, handles optional leading #)
+        function importM3uList(m3uText) {
+            if (!m3uText || !m3uText.trim()) {
+                showToast(getLocStr('toast_invalid_m3u'));
+                return;
+            }
+            
+            const lines = m3uText.split(/\r?\n/);
+            const parsedChannels = [];
+            
+            let currentChannel = null;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const cleanLine = line.replace(/^#/, '');
+                
+                if (cleanLine.startsWith('EXTM3U')) {
+                    continue;
+                }
+                
+                if (cleanLine.startsWith('EXTINF:')) {
+                    // Split attributes and name at the last comma (spec-compliant)
+                    const lastCommaIdx = line.lastIndexOf(',');
+                    let name = getLocStr('empty_channel_name');
+                    let attributes = '';
+                    if (lastCommaIdx > -1) {
+                        name = line.substring(lastCommaIdx + 1).trim();
+                        const extinfPart = line.substring(0, lastCommaIdx).trim();
+                        
+                        const match = extinfPart.match(/^#?EXTINF:\s*(-?\d+)\s*(.*)$/);
+                        if (match) {
+                            attributes = match[2].trim();
+                        }
+                    } else {
+                        // Fallback
+                        const match = line.match(/^#?EXTINF:\s*(-?\d+)\s*(.*)$/);
+                        if (match) {
+                            name = match[2].trim();
+                        }
+                    }
+                    
+                    // Parse specific attributes
+                    let tvgId = '';
+                    let tvgLogo = '';
+                    let groupTitle = '';
+                    
+                    if (attributes) {
+                        const idMatch = attributes.match(/tvg-id="([^"]*)"/);
+                        if (idMatch) { tvgId = idMatch[1]; attributes = attributes.replace(idMatch[0], '').trim(); }
+                        
+                        const logoMatch = attributes.match(/tvg-logo="([^"]*)"/);
+                        if (logoMatch) { tvgLogo = logoMatch[1]; attributes = attributes.replace(logoMatch[0], '').trim(); }
+                        
+                        const groupMatch = attributes.match(/group-title="([^"]*)"/);
+                        if (groupMatch) { groupTitle = groupMatch[1]; attributes = attributes.replace(groupMatch[0], '').trim(); }
+                        
+                        // normalize spaces
+                        attributes = attributes.replace(/\s+/g, ' ').trim();
+                    }
+                    
+                    if (currentChannel) {
+                        parsedChannels.push(currentChannel);
+                    }
+                    
+                    currentChannel = {
+                        name: name,
+                        url: '',
+                        streamType: 'auto',
+                        groupTitle: groupTitle,
+                        tvgLogo: tvgLogo,
+                        tvgId: tvgId,
+                        attributes: attributes,
+                        streamHeaders: '',
+                        userAgent: '',
+                        referer: '',
+                        origin: '',
+                        drmType: 'none',
+                        drmKeyType: 'key',
+                        drmValue: ''
+                    };
+                    continue;
+                }
+                
+                if (!currentChannel) continue;
+                
+                // Parse independent tags
+                if (cleanLine.startsWith('EXTVLCOPT:')) {
+                    const opt = cleanLine.substring(10).trim();
+                    const eqIdx = opt.indexOf('=');
+                    if (eqIdx > -1) {
+                        const key = opt.substring(0, eqIdx).trim();
+                        const val = opt.substring(eqIdx + 1).trim();
+                        
+                        const decodedVal = safeDecode(val);
+                        if (key === 'http-user-agent') currentChannel.userAgent = decodedVal;
+                        if (key === 'http-referrer') currentChannel.referer = decodedVal;
+                        if (key === 'http-origin') currentChannel.origin = decodedVal;
+                    }
+                    continue;
+                }
+                
+                if (cleanLine.startsWith('KODIPROP:')) {
+                    const prop = cleanLine.substring(9).trim();
+                    const eqIdx = prop.indexOf('=');
+                    if (eqIdx > -1) {
+                        const key = prop.substring(0, eqIdx).trim();
+                        const val = prop.substring(eqIdx + 1).trim();
+                        
+                        const decodedVal = safeDecode(val);
+                        if (key === 'inputstream.adaptive.manifest_type') {
+                            currentChannel.streamType = decodedVal;
+                        }
+                        if (key === 'inputstream' && decodedVal === 'inputstream.ffmpegdirect') {
+                            currentChannel.streamType = 'ts';
+                        }
+                        if (key === 'inputstream.adaptive.license_type') {
+                            currentChannel.drmType = decodedVal;
+                        }
+                        if (key === 'inputstream.adaptive.license_key') {
+                            currentChannel.drmValue = decodedVal;
+                            if (decodedVal.startsWith('http')) {
+                                currentChannel.drmKeyType = 'url';
+                            } else {
+                                currentChannel.drmKeyType = 'key';
+                            }
+                        }
+                        if (key === 'inputstream.adaptive.stream_headers') {
+                            currentChannel.streamHeaders = decodedVal;
+                        }
+                    }
+                    continue;
+                }
+                
+                // If it starts with http or fits URL format and is not a comment line
+                if (line && !line.startsWith('#')) {
+                    const parsed = parseUrlSuffix(line);
+                    currentChannel.url = safeDecode(parsed.url);
+                    
+                    if (parsed.headers.userAgent) currentChannel.userAgent = parsed.headers.userAgent;
+                    if (parsed.headers.referer) currentChannel.referer = parsed.headers.referer;
+                    if (parsed.headers.origin) currentChannel.origin = parsed.headers.origin;
+                    
+                    parsedChannels.push(currentChannel);
+                    currentChannel = null;
+                }
+            }
+            
+            if (currentChannel && currentChannel.url) {
+                parsedChannels.push(currentChannel);
+            }
+            
+            if (parsedChannels.length > 0) {
+                channels = channels.concat(parsedChannels);
+                renderChannelsTable();
+                importM3uText.value = '';
+                showToast(getLocStr('toast_import_success'));
+            } else {
+                showToast(getLocStr('toast_no_import'));
+            }
+        }
+
+        // --- EVENT HANDLERS ---
+
+        // Form submit: Add or Edit Channel
+        channelForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const idx = parseInt(channelIndexInput.value);
+            
+            const channel = {
+                name: channelNameInput.value.trim(),
+                url: safeDecode(channelUrlInput.value.trim()),
+                streamType: streamTypeSelect.value,
+                userAgent: safeDecode(userAgentInput.value.trim()),
+                referer: safeDecode(refererInput.value.trim()),
+                origin: safeDecode(originInput.value.trim()),
+                groupTitle: groupTitleInput.value.trim(),
+                tvgLogo: tvgLogoInput.value.trim(),
+                tvgId: tvgIdInput.value.trim(),
+                attributes: channelAttributesInput.value.trim(),
+                streamHeaders: streamHeadersInput.value.trim(),
+                drmType: drmTypeSelect.value,
+                drmKeyType: drmKeyTypeSelect.value,
+                drmValue: drmTypeSelect.value !== 'none' ? safeDecode(drmValueInput.value.trim()) : ''
+            };
+            
+            if (idx === -1) {
+                channels.push(channel);
+                showToast(getLocStr('toast_added'));
+            } else {
+                channels[idx] = channel;
+                showToast(getLocStr('toast_updated'));
+            }
+            
+            resetForm();
+            renderChannelsTable();
+        });
+
+        // Edit & Delete actions inside table
+        channelsTbody.addEventListener('click', (e) => {
+            const idx = e.target.getAttribute('data-index');
+            if (idx === null) return;
+            
+            const index = parseInt(idx);
+            
+            if (e.target.classList.contains('btn-delete')) {
+                channels.splice(index, 1);
+                showToast(getLocStr('toast_deleted'));
+                if (editingIndex === index) {
+                    resetForm();
+                }
+                renderChannelsTable();
+            } else if (e.target.classList.contains('btn-edit')) {
+                const ch = channels[index];
+                editingIndex = index;
+                
+                channelIndexInput.value = index;
+                channelNameInput.value = ch.name;
+                channelUrlInput.value = ch.url;
+                streamTypeSelect.value = ch.streamType || 'auto';
+                userAgentInput.value = ch.userAgent;
+                refererInput.value = ch.referer;
+                originInput.value = ch.origin;
+                groupTitleInput.value = ch.groupTitle || '';
+                tvgLogoInput.value = ch.tvgLogo || '';
+                tvgIdInput.value = ch.tvgId || '';
+                channelAttributesInput.value = ch.attributes || '';
+                streamHeadersInput.value = ch.streamHeaders || '';
+                drmTypeSelect.value = ch.drmType;
+                drmKeyTypeSelect.value = ch.drmKeyType;
+                drmValueInput.value = ch.drmValue;
+                
+                btnSubmitChannel.querySelector('span').textContent = getLocStr('btn_save_changes');
+                btnCancelEdit.style.display = 'inline-flex';
+                
+                updateDrmFields();
+                document.getElementById('form-title').textContent = getLocStr('form_title_edit');
+                window.scrollTo({ top: 120, behavior: 'smooth' });
+            }
+        });
+
+        // Cancel Edit Button
+        btnCancelEdit.addEventListener('click', resetForm);
+
+        // Load template clicks
+        btnLoadExample.addEventListener('click', loadExample);
+        btnLoadExampleDrm.addEventListener('click', loadExampleDrm);
+
+        // Clean URL button click
+        btnCleanUrl.addEventListener('click', cleanUrlInput);
+
+        // Handle manual clean / auto-clean on URL field blur or paste
+        channelUrlInput.addEventListener('blur', () => {
+            if (channelUrlInput.value.includes('%') || channelUrlInput.value.includes('|')) {
+                cleanUrlInput();
+            }
+        });
+
+        // Clear All Channels
+        btnClearAll.addEventListener('click', () => {
+            if (confirm(getLocStr('confirm_clear_all'))) {
+                channels = [];
+                resetForm();
+                renderChannelsTable();
+                showToast(getLocStr('toast_cleared'));
+            }
+        });
+
+        // Import M3U Button Click
+        btnImport.addEventListener('click', () => {
+            importM3uList(importM3uText.value);
+        });
+
+        // Dropdowns and checkbox trigger updates
+        drmTypeSelect.addEventListener('change', updateDrmFields);
+        drmKeyTypeSelect.addEventListener('change', updateDrmFields);
+        formatModeSelect.addEventListener('change', generateM3uOutput);
+        decodePercentCheckbox.addEventListener('change', generateM3uOutput);
+        includeKodiPropsCheckbox.addEventListener('change', generateM3uOutput);
+
+        // Copy to Clipboard
+        btnCopy.addEventListener('click', () => {
+            const textToCopy = m3uOutputCode.textContent;
+            if (channels.length === 0) {
+                showToast(getLocStr('toast_no_content'));
+                return;
+            }
+            
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    const copyText = btnCopy.querySelector('.copy-text');
+                    copyText.textContent = getLocStr('btn_copied');
+                    btnCopy.classList.add('btn-primary');
+                    btnCopy.classList.remove('btn-secondary');
+                    
+                    showToast(getLocStr('toast_copied'));
+                    
+                    setTimeout(() => {
+                        copyText.textContent = getLocStr('btn_copy');
+                        btnCopy.classList.remove('btn-primary');
+                        btnCopy.classList.add('btn-secondary');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Error: ', err);
+                    showToast(getLocStr('toast_error_copy'));
+                });
+        });
+
+        // Download Playlist File
+        btnDownload.addEventListener('click', () => {
+            if (channels.length === 0) {
+                showToast(getLocStr('toast_no_content'));
+                return;
+            }
+            
+            const text = m3uOutputCode.textContent;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lista_drm_limpia.m3u';
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast(getLocStr('toast_downloaded'));
+        });
+
+        // Initialize App
+        initLanguage();
+    </script>
+</body>
+</html>
