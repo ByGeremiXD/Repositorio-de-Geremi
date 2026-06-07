@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conversor Pro - NTSC ↔ PAL | FFmpeg</title>
+    <meta name="description" content="Conversor profesional de video y audio NTSC a PAL con FFmpeg. Vista previa de 15 segundos, modificación de audio y conversión de video.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --card: rgba(22, 22, 38, 0.85);
+            --card-border: rgba(124, 77, 255, 0.15);
+            --primary: #7c4dff;
+            --primary-glow: rgba(124, 77, 255, 0.35);
+            --accent: #00e676;
+            --accent-glow: rgba(0, 230, 118, 0.25);
+            --warning: #ffab40;
+            --danger: #ff5252;
+            --text: #e8eaf6;
+            --text-dim: #8892b0;
+            --surface: rgba(30, 30, 50, 0.7);
+            --surface-hover: rgba(40, 40, 65, 0.85);
+            --radius: 14px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 20% 50%, rgba(124, 77, 255, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, rgba(0, 230, 118, 0.05) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(255, 171, 64, 0.04) 0%, transparent 50%);
+            animation: bgPulse 15s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgPulse {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-2%, 1%) scale(1.02); }
+            66% { transform: translate(1%, -1%) scale(0.98); }
+        }
+
+        .container {
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 28px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 580px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 0 40px var(--primary-glow);
+            animation: containerIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes containerIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(124, 77, 255, 0.15);
+        }
+
+        .header-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            display: block;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), #b388ff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .ffmpeg-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.15), rgba(124, 77, 255, 0.15));
+            border: 1px solid rgba(0, 230, 118, 0.25);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-top: 10px;
+            letter-spacing: 0.05em;
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 18px;
+            animation: fadeSlideUp 0.5s ease-out both;
+        }
+
+        .form-group:nth-child(2) { animation-delay: 0.05s; }
+        .form-group:nth-child(3) { animation-delay: 0.1s; }
+        .form-group:nth-child(4) { animation-delay: 0.15s; }
+        .form-group:nth-child(5) { animation-delay: 0.2s; }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            color: var(--text-dim);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        label .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        /* File Input */
+        .file-drop-zone {
+            position: relative;
+            border: 2px dashed rgba(124, 77, 255, 0.3);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--surface);
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(124, 77, 255, 0.08);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .file-drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-drop-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .file-drop-text {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .file-drop-text strong {
+            color: var(--primary);
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: rgba(0, 230, 118, 0.08);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+            border-radius: 10px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            display: none;
+            animation: fadeSlideUp 0.3s ease;
+        }
+
+        /* Select & Input */
+        select, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(124, 77, 255, 0.2);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.25s ease;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237c4dff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+        }
+
+        select:focus, input[type="number"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        select option {
+            background: #1a1a2e;
+            color: var(--text);
+        }
+
+        /* Audio Controls Section */
+        .audio-controls {
+            background: var(--surface);
+            border: 1px solid rgba(124, 77, 255, 0.15);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+
+        .audio-controls h3 {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .slider-group {
+            margin-bottom: 14px;
+        }
+
+        .slider-group:last-child { margin-bottom: 0; }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .slider-value {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.82rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(124, 77, 255, 0.2);
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary-glow);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Preview Area */
+        .preview-section {
+            margin-bottom: 18px;
+            display: none;
+        }
+
+        .preview-section.visible { display: block; }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .preview-header h3 {
+            font-size: 0.85rem;
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-badge {
+            background: rgba(255, 171, 64, 0.15);
+            border: 1px solid rgba(255, 171, 64, 0.3);
+            color: var(--warning);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        #videoPreview {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+            max-height: 280px;
+            display: none;
+        }
+
+        #audioPreview {
+            width: 100%;
+            margin-top: 8px;
+            display: none;
+            border-radius: 8px;
+        }
+
+        /* Visualizer */
+        #visualizer {
+            width: 100%;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            margin-bottom: 18px;
+            display: block;
+            border: 1px solid rgba(124, 77, 255, 0.1);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            border: none;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #651fff);
+            color: #fff;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(124, 77, 255, 0.5);
+        }
+
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-primary:disabled {
+            background: #333;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-preview {
+            background: linear-gradient(135deg, var(--warning), #ff6d00);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(255, 171, 64, 0.25);
+        }
+
+        .btn-preview:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(255, 171, 64, 0.4);
+        }
+
+        .btn-preview:disabled {
+            background: #444;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-download {
+            display: none;
+            background: linear-gradient(135deg, var(--accent), #00c853);
+            color: #000;
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 10px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 230, 118, 0.4);
+        }
+
+        /* Progress */
+        .progress-container {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .progress-container.visible { display: block; }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(124, 77, 255, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        #status {
+            text-align: center;
+            font-size: 0.82rem;
+            min-height: 20px;
+            font-weight: 600;
+            color: var(--text-dim);
+        }
+
+        #status.success { color: var(--accent); }
+        #status.error { color: var(--danger); }
+        #status.working { color: var(--warning); }
+
+        /* FFmpeg loading overlay */
+        .ffmpeg-loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 18, 0.92);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ffmpeg-loading.visible { display: flex; }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(124, 77, 255, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .loading-sub {
+            font-size: 0.75rem;
+            color: rgba(136, 146, 176, 0.6);
+        }
+
+        /* Google Translate */
+        #google_translate_element { margin-bottom: 12px; }
+        .goog-te-gadget-simple { background: var(--surface) !important; border: 1px solid rgba(124, 77, 255, 0.2) !important; border-radius: 8px; padding: 6px 10px !important; }
+        .goog-te-gadget-simple span { color: #fff !important; }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container { padding: 18px; border-radius: 16px; }
+            h1 { font-size: 1.25rem; }
+            .btn-group { flex-direction: column; }
+        }
+
+        /* Tooltip */
+        .info-tip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(124, 77, 255, 0.2);
+            color: var(--primary);
+            font-size: 0.6rem;
+            font-weight: 800;
+            cursor: help;
+            flex-shrink: 0;
+        }
+
+        /* Section dividers */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(124, 77, 255, 0.2), transparent);
+            margin: 18px 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- FFmpeg Loading Overlay -->
+<div class="ffmpeg-loading" id="ffmpegLoading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando FFmpeg...</div>
+    <div class="loading-sub">Descargando motor de conversión (~31 MB)</div>
+</div>
+
+<div class="container">
+    <div id="google_translate_element"></div>
+
+    <div class="header">
+        <span class="header-icon">🎬</span>
+        <h1>Conversor Pro NTSC ↔ PAL</h1>
+        <p class="subtitle">Conversión de audio y video con FFmpeg en el navegador</p>
+        <span class="ffmpeg-badge">⚡ Powered by FFmpeg.wasm</span>
+    </div>
+
+    <!-- Step 1: File -->
+    <div class="form-group">
+        <label><span class="step-num">1</span> Archivo de Audio o Video</label>
+        <div class="file-drop-zone" id="dropZone">
+            <input type="file" id="mediaFile" accept="audio/*,video/*,.mp4,.avi,.mkv,.mov,.wmv,.flv,.webm,.mp3,.wav,.ogg,.aac,.flac,.m4a">
+            <span class="file-drop-icon">📂</span>
+            <div class="file-drop-text">Arrastra tu archivo aquí o <strong>haz clic para seleccionar</strong></div>
+            <div style="font-size: 0.7rem; color: rgba(136,146,176,0.5); margin-top: 6px;">MP4, AVI, MKV, MOV, MP3, WAV, AAC, FLAC...</div>
+        </div>
+        <div class="file-info" id="fileInfo"></div>
+    </div>
+
+    <!-- Visualizer -->
+    <canvas id="visualizer"></canvas>
+
+    <!-- Step 2: Conversion Mode -->
+    <div class="form-group">
+        <label><span class="step-num">2</span> Modo de Conversión</label>
+        <select id="conversionType">
+            <option value="ntsc_to_pal">NTSC → PAL (29.97fps → 25fps)</option>
+            <option value="pal_to_ntsc">PAL → NTSC (25fps → 29.97fps)</option>
+            <option value="custom">Personalizado...</option>
+        </select>
+        <input type="number" id="customFps" value="25" min="1" max="120" step="0.001" style="display:none; margin-top:10px;" placeholder="FPS destino">
+    </div>
+
+    <!-- Step 3: Output Format -->
+    <div class="form-group">
+        <label><span class="step-num">3</span> Formato de Salida</label>
+        <select id="outputFormat">
+            <option value="mp4">MP4 (Video - Recomendado)</option>
+            <option value="avi">AVI (Video)</option>
+            <option value="webm">WebM (Video)</option>
+            <option value="mp3">MP3 (Solo Audio)</option>
+            <option value="wav">WAV (Solo Audio - Sin pérdida)</option>
+            <option value="aac">AAC (Solo Audio)</option>
+        </select>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- Step 4: Audio Controls -->
+    <div class="audio-controls">
+        <h3>🎛️ Modificar Audio</h3>
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>🔊 Volumen</span>
+                <span class="slider-value" id="volumeValue">100%</span>
+            </div>
+            <input type="range" id="volumeSlider" min="0" max="300" value="100" step="5">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>⏱️ Velocidad del Audio</span>
+                <span class="slider-value" id="atempoValue">1.00x</span>
+            </div>
+            <input type="range" id="atempoSlider" min="50" max="200" value="100" step="1">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>🎵 Corrección de Pitch</span>
+                <span class="slider-value" id="pitchValue">Desactivada</span>
+            </div>
+            <select id="pitchCorrection" style="margin-top: 4px;">
+                <option value="none">Sin corrección</option>
+                <option value="auto">Automática (compensa cambio de velocidad)</option>
+            </select>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>📻 Calidad / Canales</span>
+            </div>
+            <select id="audioQuality">
+                <option value="stereo">Estéreo Original (Calidad máxima)</option>
+                <option value="mono_high">Mono Alta Calidad (128kbps)</option>
+                <option value="mono_mid" selected>Mono Estándar (96kbps - Equilibrado)</option>
+                <option value="mono_low">Mono Económico (64kbps - Más ligero)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="preview-section" id="previewSection">
+        <div class="preview-header">
+            <h3>👁️ Vista Previa</h3>
+            <span class="preview-badge">15 seg</span>
+        </div>
+        <video id="videoPreview" controls></video>
+        <audio id="audioPreview" controls></audio>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-group">
+        <button class="btn btn-preview" id="previewBtn" disabled>
+            👁️ Vista Previa 15s
+        </button>
+        <button class="btn btn-primary" id="convertBtn" disabled>
+            🚀 Convertir
+        </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar-bg">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div id="status"></div>
+    <a class="btn-download" id="downloadBtn" href="#" download>📥 Descargar Resultado</a>
+</div>
+
+<!-- Google Translate -->
+<script type="text/javascript">
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+        pageLanguage: 'es',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<!-- FFmpeg.wasm -->
+<script type="module">
+    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
+    import { fetchFile, toBlobURL } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+    // ─── DOM Elements ───
+    const mediaFile = document.getElementById('mediaFile');
+    const convertBtn = document.getElementById('convertBtn');
+    const previewBtn = document.getElementById('previewBtn');
+    const statusEl = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const fileInfo = document.getElementById('fileInfo');
+    const dropZone = document.getElementById('dropZone');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const previewSection = document.getElementById('previewSection');
+    const videoPreview = document.getElementById('videoPreview');
+    const audioPreview = document.getElementById('audioPreview');
+    const ffmpegLoading = document.getElementById('ffmpegLoading');
+
+    // Sliders
+    const volumeSlider = document.getElementById('volumeSlider');
+    const atempoSlider = document.getElementById('atempoSlider');
+    const volumeValue = document.getElementById('volumeValue');
+    const atempoValue = document.getElementById('atempoValue');
+
+    let ffmpeg = null;
+    let ffmpegLoaded = false;
+    let currentFile = null;
+    let audioCtx, analyser, source, animationId;
+    let previewAudioElement = null;
+
+    canvas.width = 520;
+    canvas.height = 70;
+
+    // ─── Slider Updates ───
+    volumeSlider.oninput = () => {
+        volumeValue.textContent = volumeSlider.value + '%';
+    };
+
+    atempoSlider.oninput = () => {
+        const v = (atempoSlider.value / 100).toFixed(2);
+        atempoValue.textContent = v + 'x';
+    };
+
+    // ─── Conversion Type Toggle ───
+    document.getElementById('conversionType').onchange = function() {
+        document.getElementById('customFps').style.display = this.value === 'custom' ? 'block' : 'none';
+    };
+
+    // ─── Drag & Drop ───
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            mediaFile.files = e.dataTransfer.files;
+            handleFileSelected();
+        }
+    });
+
+    // ─── File Selection ───
+    mediaFile.onchange = handleFileSelected;
+
+    function handleFileSelected() {
+        const file = mediaFile.files[0];
+        if (!file) return;
+        currentFile = file;
+
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i.test(file.name);
+
+        fileInfo.innerHTML = `📄 <strong>${file.name}</strong> — ${sizeMB} MB — ${isVideo ? '🎬 Video' : '🎵 Audio'}`;
+        fileInfo.style.display = 'block';
+
+        convertBtn.disabled = false;
+        previewBtn.disabled = false;
+
+        // Reset
+        downloadBtn.style.display = 'none';
+        previewSection.classList.remove('visible');
+        videoPreview.style.display = 'none';
+        audioPreview.style.display = 'none';
+
+        setStatus('Archivo listo. Selecciona opciones y convierte.', '');
+
+        // Show original preview for audio files
+        if (!isVideo) {
+            try {
+                if (previewAudioElement) {
+                    previewAudioElement.pause();
+                    URL.revokeObjectURL(previewAudioElement.src);
+                }
+                previewAudioElement = new Audio(URL.createObjectURL(file));
+                initVisualizer(previewAudioElement);
+            } catch(e) { /* ignore visualizer errors */ }
+        }
+    }
+
+    // ─── Audio Visualizer ───
+    function initVisualizer(audioEl) {
+        if (animationId) cancelAnimationFrame(animationId);
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (source) {
+                try { source.disconnect(); } catch(e) {}
+            }
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            source = audioCtx.createMediaElementSource(audioEl);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        } catch(e) {
+            // If media element source already exists, just draw
+        }
+
+        const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            if (!analyser) return;
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 1.8;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
+                const gradient = ctx.createLinearGradient(x, canvas.height, x, canvas.height - barHeight);
+                gradient.addColorStop(0, '#7c4dff');
+                gradient.addColorStop(0.5, '#b388ff');
+                gradient.addColorStop(1, '#00e676');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+                x += barWidth;
+            }
+        }
+        draw();
+    }
+
+    // ─── Load FFmpeg ───
+    async function loadFFmpeg() {
+        if (ffmpegLoaded) return;
+        ffmpegLoading.classList.add('visible');
+
+        try {
+            ffmpeg = new FFmpeg();
+
+            ffmpeg.on('log', ({ message }) => {
+                // Parse progress from FFmpeg logs
+                const timeMatch = message.match(/time=(\d+:\d+:\d+\.\d+)/);
+                if (timeMatch) {
+                    setStatus(`⏳ Procesando: ${timeMatch[1]}`, 'working');
+                }
+            });
+
+            ffmpeg.on('progress', ({ progress }) => {
+                const pct = Math.round(progress * 100);
+                progressBar.style.width = pct + '%';
+                progressBar.classList.remove('indeterminate');
+            });
+
+            const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+            await ffmpeg.load({
+                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+            });
+
+            ffmpegLoaded = true;
+        } catch (e) {
+            setStatus('❌ Error al cargar FFmpeg: ' + e.message, 'error');
+            throw e;
+        } finally {
+            ffmpegLoading.classList.remove('visible');
+        }
+    }
+
+    // ─── Build FFmpeg Command ───
+    function buildFFmpegArgs(inputName, outputName, isPreview = false) {
+        const convType = document.getElementById('conversionType').value;
+        const volume = volumeSlider.value / 100;
+        const atempo = atempoSlider.value / 100;
+        const pitchMode = document.getElementById('pitchCorrection').value;
+        const audioQuality = document.getElementById('audioQuality').value;
+        const outputFormat = document.getElementById('outputFormat').value;
+        const isVideo = currentFile.type.startsWith('video/') || /\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i.test(currentFile.name);
+        const isAudioOnly = ['mp3', 'wav', 'aac'].includes(outputFormat);
+
+        let args = ['-i', inputName];
+
+        // Limit to 15 seconds for preview
+        if (isPreview) {
+            args.push('-t', '15');
+        }
+
+        // ─── Video Settings ───
+        if (isVideo && !isAudioOnly) {
+            let targetFps;
+            if (convType === 'ntsc_to_pal') {
+                targetFps = '25';
+            } else if (convType === 'pal_to_ntsc') {
+                targetFps = '30000/1001'; // 29.97
+            } else {
+                targetFps = document.getElementById('customFps').value;
+            }
+
+            // Use video filter for frame rate conversion
+            args.push('-r', targetFps);
+
+            // Encoding settings - use compatible codec
+            args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23');
+            args.push('-pix_fmt', 'yuv420p'); // Compatibility
+        } else if (isAudioOnly) {
+            args.push('-vn'); // No video
+        }
+
+        // ─── Audio Filters ───
+        let audioFilters = [];
+
+        // Volume
+        if (volume !== 1.0) {
+            audioFilters.push(`volume=${volume.toFixed(2)}`);
+        }
+
+        // Tempo (speed without pitch change if pitch correction is on)
+        if (atempo !== 1.0) {
+            if (pitchMode === 'auto') {
+                // atempo changes speed, asetrate + aresample corrects pitch
+                // For values outside 0.5-2.0, chain multiple atempo
+                let tempoVal = atempo;
+                if (tempoVal >= 0.5 && tempoVal <= 2.0) {
+                    audioFilters.push(`atempo=${tempoVal.toFixed(4)}`);
+                } else if (tempoVal < 0.5) {
+                    audioFilters.push(`atempo=0.5,atempo=${(tempoVal / 0.5).toFixed(4)}`);
+                } else {
+                    audioFilters.push(`atempo=2.0,atempo=${(tempoVal / 2.0).toFixed(4)}`);
+                }
+            } else {
+                // Simple tempo change (pitch will change)
+                let tempoVal = atempo;
+                if (tempoVal >= 0.5 && tempoVal <= 2.0) {
+                    audioFilters.push(`atempo=${tempoVal.toFixed(4)}`);
+                } else if (tempoVal < 0.5) {
+                    audioFilters.push(`atempo=0.5,atempo=${(tempoVal / 0.5).toFixed(4)}`);
+                } else {
+                    audioFilters.push(`atempo=2.0,atempo=${(tempoVal / 2.0).toFixed(4)}`);
+                }
+            }
+        }
+
+        if (audioFilters.length > 0) {
+            args.push('-af', audioFilters.join(','));
+        }
+
+        // ─── Audio Codec & Quality ───
+        switch (audioQuality) {
+            case 'stereo':
+                args.push('-ac', '2');
+                break;
+            case 'mono_high':
+                args.push('-ac', '1', '-b:a', '128k');
+                break;
+            case 'mono_mid':
+                args.push('-ac', '1', '-b:a', '96k');
+                break;
+            case 'mono_low':
+                args.push('-ac', '1', '-b:a', '64k');
+                break;
+        }
+
+        // Audio codec based on format
+        if (outputFormat === 'mp3') {
+            args.push('-c:a', 'libmp3lame');
+        } else if (outputFormat === 'aac' || outputFormat === 'mp4') {
+            args.push('-c:a', 'aac');
+        } else if (outputFormat === 'wav') {
+            args.push('-c:a', 'pcm_s16le');
+        } else if (outputFormat === 'webm') {
+            args.push('-c:a', 'libvorbis');
+        }
+
+        args.push('-y', outputName);
+        return args;
+    }
+
+    // ─── Helper: Get output extension ───
+    function getOutputExt() {
+        return document.getElementById('outputFormat').value;
+    }
+
+    function getMimeType(ext) {
+        const map = {
+            'mp4': 'video/mp4',
+            'avi': 'video/x-msvideo',
+            'webm': 'video/webm',
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'aac': 'audio/aac'
+        };
+        return map[ext] || 'application/octet-stream';
+    }
+
+    // ─── Status Helper ───
+    function setStatus(msg, type) {
+        statusEl.textContent = msg;
+        statusEl.className = type || '';
+    }
+
+    // ─── Preview (15 seconds) ───
+    previewBtn.onclick = async () => {
+        if (!currentFile) return;
+
+        try {
+            previewBtn.disabled = true;
+            convertBtn.disabled = true;
+            setStatus('⏳ Cargando FFmpeg para vista previa...', 'working');
+            progressContainer.classList.add('visible');
+            progressBar.classList.add('indeterminate');
+
+            await loadFFmpeg();
+
+            setStatus('⏳ Generando vista previa de 15 segundos...', 'working');
+
+            const inputName = 'input_preview' + getExtFromFile(currentFile.name);
+            const ext = getOutputExt();
+            const outputName = 'preview_output.' + ext;
+
+            await ffmpeg.writeFile(inputName, await fetchFile(currentFile));
+
+            const args = buildFFmpegArgs(inputName, outputName, true);
+            console.log('FFmpeg preview args:', args);
+            await ffmpeg.exec(args);
+
+            const data = await ffmpeg.readFile(outputName);
+            const blob = new Blob([data.buffer], { type: getMimeType(ext) });
+            const url = URL.createObjectURL(blob);
+
+            const isVideoOutput = ['mp4', 'avi', 'webm'].includes(ext);
+
+            previewSection.classList.add('visible');
+
+            if (isVideoOutput) {
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+                audioPreview.style.display = 'none';
+            } else {
+                audioPreview.src = url;
+                audioPreview.style.display = 'block';
+                videoPreview.style.display = 'none';
+            }
+
+            setStatus('✅ Vista previa lista (15 segundos)', 'success');
+
+            // Cleanup temp files
+            try {
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+            } catch(e) {}
+
+        } catch(e) {
+            console.error(e);
+            setStatus('❌ Error en vista previa: ' + e.message, 'error');
+        } finally {
+            previewBtn.disabled = false;
+            convertBtn.disabled = false;
+            progressBar.classList.remove('indeterminate');
+            progressContainer.classList.remove('visible');
+        }
+    };
+
+    // ─── Full Conversion ───
+    convertBtn.onclick = async () => {
+        if (!currentFile) return alert('Selecciona un archivo primero.');
+
+        try {
+            convertBtn.disabled = true;
+            previewBtn.disabled = true;
+            downloadBtn.style.display = 'none';
+            setStatus('⏳ Cargando FFmpeg...', 'working');
+            progressContainer.classList.add('visible');
+            progressBar.style.width = '0%';
+            progressBar.classList.add('indeterminate');
+
+            await loadFFmpeg();
+
+            setStatus('⏳ Procesando archivo completo...', 'working');
+            progressBar.classList.remove('indeterminate');
+
+            const inputName = 'input' + getExtFromFile(currentFile.name);
+            const ext = getOutputExt();
+            const outputName = 'output.' + ext;
+
+            await ffmpeg.writeFile(inputName, await fetchFile(currentFile));
+
+            const args = buildFFmpegArgs(inputName, outputName, false);
+            console.log('FFmpeg convert args:', args);
+            await ffmpeg.exec(args);
+
+            const data = await ffmpeg.readFile(outputName);
+            const blob = new Blob([data.buffer], { type: getMimeType(ext) });
+            const url = URL.createObjectURL(blob);
+
+            const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+
+            downloadBtn.href = url;
+            downloadBtn.download = `convertido.${ext}`;
+            downloadBtn.style.display = 'block';
+            downloadBtn.textContent = `📥 Descargar Resultado (${sizeMB} MB)`;
+
+            // Show result preview
+            const isVideoOutput = ['mp4', 'avi', 'webm'].includes(ext);
+            previewSection.classList.add('visible');
+            if (isVideoOutput) {
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+                audioPreview.style.display = 'none';
+            } else {
+                audioPreview.src = url;
+                audioPreview.style.display = 'block';
+                videoPreview.style.display = 'none';
+            }
+
+            setStatus(`✅ ¡Conversión completada! — ${sizeMB} MB`, 'success');
+            progressBar.style.width = '100%';
+
+            // Cleanup
+            try {
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+            } catch(e) {}
+
+        } catch(e) {
+            console.error(e);
+            setStatus('❌ Error: ' + e.message, 'error');
+        } finally {
+            convertBtn.disabled = false;
+            previewBtn.disabled = false;
+        }
+    };
+
+    // ─── Utilities ───
+    function getExtFromFile(filename) {
+        const match = filename.match(/\.[^.]+$/);
+        return match ? match[0].toLowerCase() : '.mp4';
+    }
+
+    // ─── Draw idle visualizer ───
+    function drawIdle() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const time = Date.now() / 1000;
+        for (let i = 0; i < 32; i++) {
+            const h = Math.sin(time * 2 + i * 0.3) * 8 + 10;
+            const x = i * (canvas.width / 32);
+            const gradient = ctx.createLinearGradient(x, canvas.height, x, canvas.height - h);
+            gradient.addColorStop(0, 'rgba(124, 77, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(124, 77, 255, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x + 1, canvas.height - h, (canvas.width / 32) - 3, h);
+        }
+        requestAnimationFrame(drawIdle);
+    }
+    drawIdle();
+
+</script>
+
+</body>
+</html>
